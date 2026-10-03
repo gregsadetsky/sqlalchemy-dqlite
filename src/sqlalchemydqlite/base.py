@@ -139,7 +139,8 @@ def validate_connect_args(kwargs: dict[str, Any]) -> None:
 
 
 def _walk_causes(exc: BaseException, limit: int = 64) -> Iterator[BaseException]:
-    """``exc`` and everything reachable through ``__cause__``, ``__context__`` and groups."""
+    """``exc`` and everything reachable through ``__cause__``, ``__context__`` (unless
+    suppressed, as ``raise ... from`` does) and groups."""
     seen: set[int] = set()
     queue: deque[BaseException] = deque([exc])
     while queue and len(seen) < limit:
@@ -148,7 +149,8 @@ def _walk_causes(exc: BaseException, limit: int = 64) -> Iterator[BaseException]
             continue
         seen.add(id(current))
         yield current
-        queue.extend(c for c in (current.__cause__, current.__context__) if c is not None)
+        context = None if current.__suppress_context__ else current.__context__
+        queue.extend(c for c in (current.__cause__, context) if c is not None)
         if isinstance(current, BaseExceptionGroup):
             queue.extend(current.exceptions)
 
