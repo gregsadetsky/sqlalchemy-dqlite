@@ -431,6 +431,9 @@ class DqliteDialect(SQLiteDialect_pysqlite):
             if not validator(value):
                 raise ArgumentError(f"URL query {key}={text!r} is out of range")
             kwargs[key] = value
+        if not self.is_async:
+            # The pool hands connections to any thread; the dbapi's threadsafety is 2.
+            kwargs.setdefault("check_same_thread", False)
         if kwargs.get("max_total_rows", 0) is None:
             logger.warning(
                 "dqlite: max_total_rows cap disabled via URL; the client will accept "
