@@ -224,6 +224,7 @@ class TestAsyncAdaptedConnectionIsolationLevel:
 
 def _make_adapter() -> AsyncAdaptedConnection:
     adapter = AsyncAdaptedConnection.__new__(AsyncAdaptedConnection)
+    adapter.dbapi = dbapi_aio  # as DqliteDialect_aio.connect() passes it
     adapter._connection = MagicMock()
     return adapter
 

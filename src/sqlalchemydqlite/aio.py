@@ -12,6 +12,7 @@ from sqlalchemy.connectors.asyncio import (
 )
 from sqlalchemy.engine import URL
 from sqlalchemy.exc import ArgumentError
+from sqlalchemy.util import await_only
 
 import dqliteclient.exceptions as client_exc
 import dqlitedbapi.exceptions as dbapi_exc
@@ -73,7 +74,7 @@ class AsyncAdaptedConnection(AsyncAdapt_terminate, AsyncAdapt_dbapi_connection):
 
     def close(self) -> None:
         try:
-            self.await_(self._connection.close())
+            await_only(self._connection.close())
         except Exception as error:
             self._handle_exception(error)
 
@@ -113,7 +114,7 @@ class DqliteDialect_aio(DqliteDialect):
     def connect(self, *cargs: Any, **cparams: Any) -> Any:
         raw = super().connect(*cargs, **cparams)
         try:
-            AsyncAdaptedConnection.await_(raw.connect())
+            await_only(raw.connect())
         except BaseException:
             raw.force_close_transport()
             raise
