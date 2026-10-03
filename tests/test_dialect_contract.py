@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -509,6 +510,33 @@ def test_connect_args_busy_timeout_bool_rejected() -> None:
     with pytest.raises(ArgumentError):
         engine.connect()
     engine.dispose()
+
+
+def test_pooled_connection_can_be_used_from_another_thread() -> None:
+    """The pool hands a connection to whichever thread checks it out next."""
+    engine = create_engine("dqlite://localhost:9001/default")
+    _args, kwargs = engine.dialect.create_connect_args(engine.url)
+    conn = engine.dialect.connect(**kwargs)
+    errors: list[BaseException] = []
+
+    def use() -> None:
+        try:
+            conn.cursor().close()
+        except BaseException as exc:  # noqa: BLE001 - reported below
+            errors.append(exc)
+
+    thread = threading.Thread(target=use)
+    thread.start()
+    thread.join()
+    conn.close()
+    engine.dispose()
+    assert errors == []
+
+
+def test_async_dialect_leaves_check_same_thread_unset() -> None:
+    engine = create_async_engine("dqlite+aio://localhost:9001/default")
+    _args, kwargs = engine.dialect.create_connect_args(engine.url)
+    assert "check_same_thread" not in kwargs
 
 
 def test_url_query_check_same_thread_false_forwards_to_kwargs() -> None:
