@@ -147,6 +147,13 @@ def _chain(outer: BaseException, inner: BaseException) -> BaseException:
     return outer
 
 
+def _raised_from_none(outer: BaseException, during: BaseException) -> BaseException:
+    """``raise outer from None`` inside ``except during``: the context is hidden."""
+    outer.__context__ = during
+    outer.__suppress_context__ = True
+    return outer
+
+
 @pytest.mark.parametrize(
     ("exc", "expected"),
     [
@@ -179,6 +186,12 @@ def _chain(outer: BaseException, inner: BaseException) -> BaseException:
         (dbapi_exc.DatabaseError("corrupt", code=SQLITE_CORRUPT), True),
         (dbapi_exc.IntegrityError("dup", code=SQLITE_CORRUPT), False),
         (BaseExceptionGroup("g", [ValueError("x"), client_exc.DqliteConnectionError("y")]), True),
+        (
+            _raised_from_none(
+                dbapi_exc.IntegrityError("dup", code=19), client_exc.DqliteConnectionError("x")
+            ),
+            False,
+        ),
     ],
 )
 def test_is_disconnect_classification(exc: BaseException, expected: bool) -> None:
