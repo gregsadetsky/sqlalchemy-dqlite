@@ -592,3 +592,15 @@ async def test_connect_cleanup_arm_terminates_after_successful_construction() ->
         await greenlet_spawn(dialect.connect, async_creator_fn=creator)
 
     assert raw.terminate_called is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure", [RuntimeError("Event loop is closed"), dbapi_exc.OperationalError("gone")]
+)
+async def test_do_close_falls_back_to_dropping_the_transport(failure: Exception) -> None:
+    raw = MagicMock()
+    raw.close = AsyncMock(side_effect=failure)
+    adapter = AsyncAdaptedConnection(dbapi_aio, raw)
+    await greenlet_spawn(DqliteDialect_aio().do_close, adapter)
+    raw.force_close_transport.assert_called_once_with()
