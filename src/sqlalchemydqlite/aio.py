@@ -93,6 +93,10 @@ class AsyncAdaptedConnection(AsyncAdapt_terminate, AsyncAdapt_dbapi_connection):
     def _terminate_force_close(self) -> None:
         self._connection.force_close_transport()
 
+    def force_close_transport(self) -> None:
+        """What ``do_close`` falls back to when the graceful close fails."""
+        self._connection.force_close_transport()
+
 
 class DqliteDialect_aio(DqliteDialect):
     """``create_async_engine("dqlite+aio://host:port/database")``."""
